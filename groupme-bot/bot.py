@@ -11,6 +11,18 @@ GROUP_ID = os.getenv("GROUP_ID")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 LAST_MESSAGE_ID = None
 
+GIPHY_API_KEY = "TyWj6PRSeLqIBw7OgCpuz4VjFZDUZTQY" 
+USER_ID = "61353690"
+
+def search_gif(keyword):
+    endpoint = "https://api.giphy.com/v1/gifs/search"
+    params = {"api_key": GIPHY_API_KEY, "q": keyword, "limit": 1,}
+    response = requests.get(endpoint, params=params)
+    response.raise_for_status()
+
+    gif_data = response.json().get("data", [])
+    if gif_data:
+        return gif_data[0].get("images", {}).get("original", {}).get("url", "")
 
 def send_message(text, attachments=None):
     """Send a message to the group using the bot."""
@@ -33,18 +45,32 @@ def get_group_messages(since_id=None):
         return response.json().get("response", {}).get("messages", [])
     return []
 
-
 def process_message(message):
     """Process and respond to a message."""
     global LAST_MESSAGE_ID
+    sender_id = message["sender_id"]
+    sender_type = message["sender_type"]
+    sender_name = message["name"]
     text = message["text"].lower()
 
-    # i.e. responding to a specific message (note that this checks if "hello bot" is anywhere in the message, not just the beginning)
-    if "hello bot" in text:
-        send_message("sup")
+    if sender_type == "user":
+        if sender_id == USER_ID:
+            send_message("Sup!")
+        if "good morning" in text:
+            send_message(f"Good morning, {sender_name}!")
+        if "good night" in text:
+            send_message(f"Good night, {sender_name}!")
+        if "hi bot gif " in text:
+            keyword = text.split("gif ", 1)[-1].strip()
+            
+            gif_url = search_gif(keyword)
 
+            if gif_url:
+                send_message(gif_url)
+            else:
+                send_message("Sorry, I can't find a GIF for the keyword.")
+                
     LAST_MESSAGE_ID = message["id"]
-
 
 def main():
     global LAST_MESSAGE_ID
